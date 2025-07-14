@@ -8,11 +8,11 @@ class MarkowitzPortfolio:
 
     def get_returns(self, tickers):
 
-        return np.array([1.2, 1.1, 1.3])
+        return np.array([1.25, 1.15, 1.35])
 
     def get_covariances(self, tickers):
 
-        sigma = np.matrix([[1.5, 0.5, 2], [0.5, 2, 0], [2, 0, 5]])
+        sigma = np.array([[1.5, 0.5, 2], [0.5, 2, 0], [2, 0, 5]])
         sigma = pd.DataFrame(sigma, index=range(len(tickers)), columns=range(len(tickers)))
 
         return sigma
@@ -23,8 +23,6 @@ class MarkowitzPortfolio:
         self.returns = self.get_returns(tickers)
         self.sigma = self.get_covariances(tickers)
         self.portfolio = AMPL()
-        self.portfolio.option["solver"] = "highs"
-        self.portfolio.option["verbose"] = False
 
     def output_weights(self):
 
@@ -43,13 +41,13 @@ class MarkowitzPortfolio:
 
 
 
-class DeterministicMarkowitz(MarkowitzPortfolio):
+class StandardMarkowitz(MarkowitzPortfolio):
 
     def __init__(self, tickers, r_risk_free, risk_aversion, divers):
 
         super().__init__(tickers)
-
-        self.portfolio.read('deterministic_markowitz.mod')
+        self.portfolio.option["solver"] = "highs"
+        self.portfolio.read('standard_markowitz.mod')
         self.portfolio.set["S"] = list(range(len(tickers)))
         self.portfolio.param["r_risk_free"] = r_risk_free
         self.portfolio.param["r"] = self.returns
@@ -58,6 +56,22 @@ class DeterministicMarkowitz(MarkowitzPortfolio):
         self.portfolio.param["lower_divers"] = divers[0]
         self.portfolio.param["upper_divers"] = divers[1] if divers[1] is not None else len(tickers)
 
+class ConicMarkowitz(MarkowitzPortfolio):
 
-DM = DeterministicMarkowitz(["AA", "AAPL", "TSLA"], 1.01, 1, [1,3])
+    def __init__(self, tickers, r_risk_free, risk_tolerance, divers):
+
+        super().__init__(tickers)
+
+        self.portfolio.option["solver"] = "mosek"
+        self.portfolio.read('conic_markowitz.mod')
+        self.portfolio.set["S"] = list(range(len(tickers)))
+        self.portfolio.param["r_risk_free"] = r_risk_free
+        self.portfolio.param["r"] = self.returns
+        self.portfolio.param["Sigma"] = self.sigma
+        self.portfolio.param["risk_tolerance"] = risk_tolerance
+        self.portfolio.param["lower_divers"] = divers[0]
+        self.portfolio.param["upper_divers"] = divers[1] if divers[1] is not None else len(tickers)
+
+
+DM = ConicMarkowitz(["AA", "AAPL", "TSLA"], 1.05, 0.1, [0,3])
 DM.output_weights()
