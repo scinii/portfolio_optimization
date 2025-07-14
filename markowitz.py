@@ -1,6 +1,7 @@
 from amplpy import AMPL
 import numpy as np
 import pandas as pd
+from tabulate import tabulate
 
 
 class MarkowitzPortfolio:
@@ -18,6 +19,7 @@ class MarkowitzPortfolio:
 
     def __init__(self, tickers):
 
+        self.tickers = tickers
         self.returns = self.get_returns(tickers)
         self.sigma = self.get_covariances(tickers)
         self.portfolio = AMPL()
@@ -25,18 +27,29 @@ class MarkowitzPortfolio:
         self.portfolio.option["verbose"] = False
 
     def output_weights(self):
+
         self.portfolio.solve()
-        print(self.portfolio.var["x"].to_dict())
-        print(self.portfolio.var["x_risk_free"].value())
+
+        risk_free_weight = self.portfolio.var["x_risk_free"].value()
+        risky_assets_weights = list(self.portfolio.var["x"].to_dict().values())
+
+        weights = risky_assets_weights + [risk_free_weight]
+        asset_names = self.tickers + ["Bond"]
+
+        headers = ["Asset", "Weight"]
+        final_table = np.column_stack((asset_names, weights))
+
+        print(tabulate(final_table, headers=headers, tablefmt="fancy_grid"))
+
 
 
 class DeterministicMarkowitz(MarkowitzPortfolio):
 
-    def __init__(self, tickers, r_risk_free, risk_aversion, divers, file_path):
+    def __init__(self, tickers, r_risk_free, risk_aversion, divers):
 
         super().__init__(tickers)
 
-        self.portfolio.read(file_path)
+        self.portfolio.read('deterministic_markowitz.mod')
         self.portfolio.set["S"] = list(range(len(tickers)))
         self.portfolio.param["r_risk_free"] = r_risk_free
         self.portfolio.param["r"] = self.returns
@@ -46,6 +59,5 @@ class DeterministicMarkowitz(MarkowitzPortfolio):
         self.portfolio.param["upper_divers"] = divers[1] if divers[1] is not None else len(tickers)
 
 
-
-DM = DeterministicMarkowitz(["AA", "AAPL", "TSLA"], 1.01, 1, [1,3], 'deterministic_markowitz.mod')
+DM = DeterministicMarkowitz(["AA", "AAPL", "TSLA"], 1.01, 1, [1,3])
 DM.output_weights()
