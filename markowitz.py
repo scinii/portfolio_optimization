@@ -2,17 +2,17 @@ from amplpy import AMPL
 import numpy as np
 import pandas as pd
 from tabulate import tabulate
-
+from utils import compute_returns, compute_covariance
 
 class MarkowitzPortfolio:
 
     def get_returns(self, tickers):
 
-        return np.array([1.25, 1.15, 1.35])
+        return compute_returns(tickers)[0]
 
     def get_covariances(self, tickers):
 
-        sigma = np.array([[1.5, 0.5, 2], [0.5, 2, 0], [2, 0, 5]])
+        sigma = compute_covariance(tickers)
         sigma = pd.DataFrame(sigma, index=range(len(tickers)), columns=range(len(tickers)))
 
         return sigma
@@ -87,5 +87,5 @@ class StochasticMarkowitz(MarkowitzPortfolio):
         self.portfolio.param["upper_divers"] = divers[1] if divers[1] is not None else len(tickers)
 
 
-DM = StandardMarkowitz(["AA", "AAPL", "TSLA"], 1.05, 0.1, [0,3])
+DM = StandardMarkowitz(["AAPL", "TSLA"], 1.05, 0.1, [0,3])
 DM.output_weights()
