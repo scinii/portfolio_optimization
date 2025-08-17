@@ -39,15 +39,13 @@ class MarkowitzPortfolio:
 
         print(tabulate(final_table, headers=headers, tablefmt="fancy_grid"))
 
-
-
 class StandardMarkowitz(MarkowitzPortfolio):
 
     def __init__(self, tickers, r_risk_free, risk_aversion, divers):
 
         super().__init__(tickers)
         self.portfolio.option["solver"] = "highs"
-        self.portfolio.read('standard_markowitz.mod')
+        self.portfolio.read('ampl_files/standard_markowitz.mod')
         self.portfolio.set["S"] = list(range(len(tickers)))
         self.portfolio.param["r_risk_free"] = r_risk_free
         self.portfolio.param["r"] = self.returns
@@ -63,7 +61,23 @@ class ConicMarkowitz(MarkowitzPortfolio):
         super().__init__(tickers)
 
         self.portfolio.option["solver"] = "mosek"
-        self.portfolio.read('conic_markowitz.mod')
+        self.portfolio.read('ampl_files/conic_markowitz.mod')
+        self.portfolio.set["S"] = list(range(len(tickers)))
+        self.portfolio.param["r_risk_free"] = r_risk_free
+        self.portfolio.param["r"] = self.returns
+        self.portfolio.param["Sigma"] = self.sigma
+        self.portfolio.param["risk_tolerance"] = risk_tolerance
+        self.portfolio.param["lower_divers"] = divers[0]
+        self.portfolio.param["upper_divers"] = divers[1] if divers[1] is not None else len(tickers)
+
+class StochasticMarkowitz(MarkowitzPortfolio):
+
+    def __init__(self, tickers, r_risk_free, risk_tolerance, divers):
+
+        super().__init__(tickers)
+
+        self.portfolio.option["solver"] = "highs"
+        self.portfolio.read('ampl_files/stochastic_markowitz.mod')
         self.portfolio.set["S"] = list(range(len(tickers)))
         self.portfolio.param["r_risk_free"] = r_risk_free
         self.portfolio.param["r"] = self.returns
@@ -73,5 +87,5 @@ class ConicMarkowitz(MarkowitzPortfolio):
         self.portfolio.param["upper_divers"] = divers[1] if divers[1] is not None else len(tickers)
 
 
-DM = ConicMarkowitz(["AA", "AAPL", "TSLA"], 1.05, 0.1, [0,3])
+DM = StandardMarkowitz(["AA", "AAPL", "TSLA"], 1.05, 0.1, [0,3])
 DM.output_weights()
