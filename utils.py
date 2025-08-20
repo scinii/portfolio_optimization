@@ -1,34 +1,28 @@
 import numpy as np
+import pandas as pd
 import yfinance as yf
+import datetime
 
-def compute_returns(tickers, period="5y"):
+def compute_returns_and_covariance(tickers, period="5y", n_years = None):
 
-    close_prices = yf.download(tickers, period = period, interval = "3mo")['Close']
+    monthly_closes = yf.download(tickers, period = period, interval = "1mo")['Close']
 
-    n_years = int(list(period)[0])
+    yearly_closes = monthly_closes[::12]
 
-    returns = np.zeros(shape = (len(tickers), n_years))
+    last_close = yf.download(tickers, start = datetime.date.today() - datetime.timedelta(days=1), end = datetime.date.today(), interval = "1mo")['Close']
 
-    for i in range(len(tickers)):
-        ticker_close_prices = close_prices[tickers[i]].values
+    close_prices = pd.concat([yearly_closes, last_close])
 
-        annual_returns = []
+    if n_years is not None:
 
-        for j in range(n_years):
+        close_prices = close_prices[:n_years+1]
 
-            p_0 = ticker_close_prices[4*j]
-            p_T = ticker_close_prices[4*(j+1)]
+    log_returns_df = np.log(close_prices / close_prices.shift(1))
 
-            annual_returns.append( (p_T - p_0) / p_0 )
+    log_returns = log_returns_df[1:].values.transpose()
 
-        returns[i,:] = annual_returns
+    mean_returns = np.mean(log_returns, axis = 1)
 
-    mean_returns = np.mean(returns, axis = 1)
+    return mean_returns, np.cov(log_returns)
 
-    return mean_returns, returns
 
-def compute_covariance(tickers, period="5y"):
-
-    returns = compute_returns(tickers, period)[1]
-
-    return np.cov(returns)
