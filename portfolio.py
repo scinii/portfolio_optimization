@@ -4,16 +4,17 @@ import pandas as pd
 from utils import compute_returns_and_covariance, get_timeseries
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from scipy.stats import norm
 
 class Portfolio:
 
     def get_returns_and_covariance(self, tickers, period, train_period):
 
-        returns, sigma = compute_returns_and_covariance(tickers, period = period, train_period = train_period)
+        #returns, sigma = compute_returns_and_covariance(tickers, period = period, train_period = train_period)
 
-        sigma = pd.DataFrame(sigma, index=range(len(tickers)), columns=range(len(tickers)))
+        #sigma = pd.DataFrame(sigma, index=range(len(tickers)), columns=range(len(tickers)))
 
-        return returns, sigma
+        return np.array([1.25, 1.15, 1.35]), np.array([[1.5, 0.5, 2], [0.5, 2, 0], [2, 0, 5]])
 
     def get_ret_vol_sr(self, w, mean_return, sigma):
 
@@ -109,7 +110,7 @@ class Portfolio:
 
 class StandardMarkowitz(Portfolio):
 
-    def __init__(self, tickers, period, train_period ,risk_aversion, diversification):
+    def __init__(self, tickers, period, train_period, risk_aversion):
 
         super().__init__(tickers, period, train_period)
 
@@ -120,12 +121,29 @@ class StandardMarkowitz(Portfolio):
         self.portfolio.param["r"] = self.returns
         self.portfolio.param["Sigma"] = self.sigma
         self.portfolio.param["risk_aversion"] = risk_aversion
-        self.portfolio.param["lower_divers"] = diversification[0]
-        self.portfolio.param["upper_divers"] = diversification[1] if diversification[1] is not None else len(tickers)
 
         self.portfolio.solve()
-        self.weights = list( self.portfolio.var["x"].to_dict().values() )
+        self.weights = list(self.portfolio.var["x"].to_dict().values())
         self.weights = np.array(self.weights)
         self.additional_portfolio = self.output_weights()[0]
 
+class StochasticMarkowitz(Portfolio):
 
+    def __init__(self, tickers, period, train_period, alpha, beta):
+
+        super().__init__(tickers, period, train_period)
+
+        self.portfolio = AMPL()
+        self.portfolio.option["solver"] = "highs"
+        self.portfolio.read('ampl_files/stochastic_markowitz.mod')
+        self.portfolio.set["S"] = list(range(len(tickers)))
+        self.portfolio.param["r"] = self.returns
+        self.portfolio.param["Sigma"] = self.sigma
+
+        self.portfolio.param["alpha"] = alpha
+        self.portfolio.param["phi"] = norm.ppf(1-beta)
+
+        self.portfolio.solve()
+        self.weights = list(self.portfolio.var["x"].to_dict().values())
+        self.weights = np.array(self.weights)
+        self.additional_portfolio = self.output_weights()[0]

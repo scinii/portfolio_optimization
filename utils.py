@@ -29,3 +29,4 @@ def get_timeseries(w, tickers, period):
     timeseries = (daily_closes * w / price_on_start_date).sum(axis=1)
 
     return timeseries
+

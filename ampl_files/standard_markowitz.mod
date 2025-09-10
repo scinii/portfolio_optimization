@@ -2,15 +2,11 @@ set S;                       # the set of stocks
 
 param C := 1;                # capital; set 1 to find weights
 param r {i in S};            # return rate risky assets
-param lower_divers;
-param upper_divers;
 
 param Sigma {i in S, j in S}; # covariance matrix r = E[(r - mu)(r - mu)^T]
 param risk_aversion;          # risk aversion
 
 var x {i in S} >= 0;          # Portfolio weights
-
-var y {i in S} binary;
 
 
 
@@ -20,12 +16,3 @@ maximize return_on_investment: sum {i in S} x[i] * r[i];
 subject to total_capital: sum {i in S} x[i] <= C;
 
 subject to risk_bound: sum {i in S, j in S} x[i] * x[j] * Sigma[i, j] <= risk_aversion;
-
-
-subject to diversity_count1{i in S}: x[i] <= y[i];
-
-subject to diversity_count2{i in S}: x[i] >= 1e-6 * y[i];
-
-subject to diversity_lower_bound:  sum {i in S} y[i] >= lower_divers;
-
-subject to diversity_upper_bound:  sum {i in S} y[i] <= upper_divers;
