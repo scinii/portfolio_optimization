@@ -10,11 +10,11 @@ class Portfolio:
 
     def get_returns_and_covariance(self, tickers, period, train_period):
 
-        #returns, sigma = compute_returns_and_covariance(tickers, period = period, train_period = train_period)
+        returns, sigma = compute_returns_and_covariance(tickers, period = period, train_period = train_period)
 
-        #sigma = pd.DataFrame(sigma, index=range(len(tickers)), columns=range(len(tickers)))
+        sigma = pd.DataFrame(sigma, index=range(len(tickers)), columns=range(len(tickers)))
 
-        return np.array([1.25, 1.15, 1.35]), np.array([[1.5, 0.5, 2], [0.5, 2, 0], [2, 0, 5]])
+        return returns, sigma
 
     def get_ret_vol_sr(self, w, mean_return, sigma):
 
@@ -147,3 +147,5 @@ class StochasticMarkowitz(Portfolio):
         self.weights = list(self.portfolio.var["x"].to_dict().values())
         self.weights = np.array(self.weights)
         self.additional_portfolio = self.output_weights()[0]
+
+        print(self.weights)
