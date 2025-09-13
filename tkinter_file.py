@@ -7,18 +7,21 @@ root = Tk()
 root.title("Portfolio Optimization")
 root.iconbitmap('img/git_logo.ico')
 root.geometry("500x500")
+matplotlib.use("TkAgg") # to generate individual plots
 
+
+# Tickers
 
 ticker_label = Label(root, text="Enter tickers (comma separated):")
 ticker_label.pack(pady=5)
 
 ticker_entry = Entry(root, width=40)
 ticker_entry.pack(pady=5)
-ticker_entry.insert(0, "AAPL, TSLA, AA, V, MA")   # default text
+ticker_entry.insert(0, "AA, V, MA")
 
-matplotlib.use("TkAgg")
 
 def run_simulation():
+
 
     tickers = [t.strip() for t in ticker_entry.get().split(",")]
     trial = StochasticMarkowitz(tickers=tickers, period="10y", train_period=5, alpha=0.1, beta=0.4)

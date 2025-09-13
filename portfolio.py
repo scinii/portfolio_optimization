@@ -3,10 +3,7 @@ import numpy as np
 import pandas as pd
 from utils import compute_returns_and_covariance, get_timeseries
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 from scipy.stats import norm
-
-import plotly.express as px
 
 class Portfolio:
 
@@ -85,14 +82,8 @@ class Portfolio:
         for spine in ax.spines.values():
             spine.set_visible(False)
 
-        # fig = px.line(x=timeseries.index, y=timeseries.values,
-        #               labels = {
-        #                 "x" : "Date",
-        #                 "y" : "Value"
-        #               })
 
         return fig
-
 
     def get_plot_efficient_frontier(self):
 
@@ -102,58 +93,69 @@ class Portfolio:
 
         portfolios_data.plot.scatter(x = 'Volatility', y = 'Return', c = 'Sharpe',colormap='viridis',ax=ax)
 
-        (self.additional_portfolio).plot.scatter(x = 'Volatility', y = 'Return', color="red",s=25,ax=ax,
+        self.your_portfolio.plot.scatter(x = 'Volatility', y = 'Return', color="red",s=25,ax=ax,
                                                  label='Your Portfolio', marker='*')
-
-        # fig = px.scatter(portfolios_data, x="Volatility", y="Return", color = "Sharpe")
-        # fig.add_scatter(x = self.additional_portfolio['Volatility'],
-        #                 y = self.additional_portfolio['Return'],
-        #                 marker = dict(color="red", size = 10), name = 'Portfolio', marker_symbol='star')
-        #
-        # fig.update_layout(legend=dict(
-        #     yanchor="top",
-        #     y=0.99,
-        #     xanchor="left",
-        #     x=0.01
-        # ))
 
         return fig
 
-    def __init__(self, tickers, period, train_period):
+    def __init__(self, tickers = None, period = "5y", train_period = 2):
+
+        self.portfolio = AMPL()
+        self.portfolio.option["solver"] = "highs"
 
         self.tickers = tickers
         self.period = period
         self.train_period = train_period
 
+        self.weights = None
+        self.your_portfolio = None
+
         self.returns, self.sigma = self.get_returns_and_covariance(tickers, self.period, self.train_period )
 
-class StandardMarkowitz(Portfolio):
+    def set_tickers(self, tickers):
+        self.tickers = tickers
 
-    def __init__(self, tickers, period, train_period, risk_aversion):
+    def set_period(self, period):
+        self.period = period
 
-        super().__init__(tickers, period, train_period)
+    def set_train_period(self, train_period):
+        self.train_period = train_period
 
-        self.portfolio = AMPL()
-        self.portfolio.option["solver"] = "highs"
-        self.portfolio.read('ampl_files/standard_markowitz.mod')
-        self.portfolio.set["S"] = list(range(len(tickers)))
-        self.portfolio.param["r"] = self.returns
-        self.portfolio.param["Sigma"] = self.sigma
-        self.portfolio.param["risk_aversion"] = risk_aversion
+    def solve_portfolio(self):
 
         self.portfolio.solve()
         self.weights = list(self.portfolio.var["x"].to_dict().values())
         self.weights = np.array(self.weights)
-        self.additional_portfolio = self.output_weights()[0]
+        self.your_portfolio = self.output_weights()[0]
 
-class StochasticMarkowitz(Portfolio):
+class StandardMarkowitz(Portfolio):
 
-    def __init__(self, tickers, period, train_period, alpha, beta):
+    def __init__(self, tickers = None, period = '5y', train_period = 2, risk_aversion = 1.0):
 
         super().__init__(tickers, period, train_period)
 
-        self.portfolio = AMPL()
-        self.portfolio.option["solver"] = "highs"
+        self.risk_aversion = risk_aversion
+
+        self.portfolio.read('ampl_files/standard_markowitz.mod')
+        self.portfolio.set["S"] = list(range(len(tickers)))
+        self.portfolio.param["r"] = self.returns
+        self.portfolio.param["Sigma"] = self.sigma
+        self.portfolio.param["risk_aversion"] = self.risk_aversion
+
+    def set_risk_aversion(self, new_risk_aversion):
+
+        self.risk_aversion = new_risk_aversion
+        self.portfolio.param["risk_aversion"] = self.risk_aversion
+
+class StochasticMarkowitz(Portfolio):
+
+    def __init__(self, tickers = None, period = '5y', train_period = 2, alpha = 0.2, beta = 0.5):
+
+        super().__init__(tickers, period, train_period)
+
+        self.alpha = alpha
+        self.beta = beta
+
         self.portfolio.read('ampl_files/stochastic_markowitz.mod')
         self.portfolio.set["S"] = list(range(len(tickers)))
         self.portfolio.param["r"] = self.returns
@@ -162,7 +164,15 @@ class StochasticMarkowitz(Portfolio):
         self.portfolio.param["alpha"] = alpha
         self.portfolio.param["phi"] = norm.ppf(1-beta)
 
-        self.portfolio.solve()
-        self.weights = list(self.portfolio.var["x"].to_dict().values())
-        self.weights = np.array(self.weights)
-        self.additional_portfolio = self.output_weights()[0]
+    def set_alpha(self,new_alpha):
+
+        self.alpha = new_alpha
+        self.portfolio.param["alpha"] = self.alpha
+
+    def set_beta(self,new_beta):
+
+        self.beta = new_beta
+        self.portfolio.param["beta"] = self.beta
+
+
+
