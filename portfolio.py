@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from scipy.stats import norm
 
+import plotly.express as px
+
 class Portfolio:
 
     def get_returns_and_covariance(self, tickers, period, train_period):
@@ -67,38 +69,55 @@ class Portfolio:
 
         return portfolios_data
 
-    def visualize_portfolios(self):
+    def get_plot_timeseries(self):
 
-        fig = plt.figure(figsize=(10, 6))
-        gs = gridspec.GridSpec(2, 3, height_ratios=[2, 1], figure=fig)
-
-        ax_scatter = fig.add_subplot(gs[0, :2])
-        ax_text = fig.add_subplot(gs[0, 2])
-        ax_timeseries = fig.add_subplot(gs[1, :])
-
-        portfolios_data = self.simulate_portfolios()
         timeseries = get_timeseries(self.weights, self.tickers, self.period)
 
-        portfolios_data.plot.scatter(x = 'Volatility', y = 'Return', c = 'Sharpe',
-                                    colormap = 'viridis', ax = ax_scatter, colorbar=False)
+        fig, ax = plt.subplots(figsize=(5, 4))
 
-        self.additional_portfolio.plot.scatter(x = 'Volatility', y = 'Return', c = 'r', ax = ax_scatter)
+        # Plotly-like style
+        ax.plot(timeseries.index, timeseries.values, color='#1f77b4', linewidth=2)  # Plotly default blue
+        ax.grid(True, linestyle='--', alpha=0.5)  # light dashed grid
+        ax.set_facecolor('#e5ecf6')
+        ax.set_xlabel("Date")
+        ax.set_ylabel("Value")
 
-        sharpe_ratio = self.additional_portfolio['Sharpe'].values[0]
-        period_return = timeseries.values[-1]-1
+        for spine in ax.spines.values():
+            spine.set_visible(False)
 
-        timeseries.plot.line(y = 'Value', ax = ax_timeseries)
+        # fig = px.line(x=timeseries.index, y=timeseries.values,
+        #               labels = {
+        #                 "x" : "Date",
+        #                 "y" : "Value"
+        #               })
 
-        ax_text.axis("off")  # turn off axes
-        ax_text.text(
-            0.05, 0.8, f"Sharpe ratio={sharpe_ratio:.2f}", ha="left", va="center", fontsize=12
-        )
-        ax_text.text(
-            0.05, 0.6, f"Return={period_return:.2f}", ha="left", va="center", fontsize=12
-        )
+        return fig
 
-        plt.tight_layout()
-        plt.show()
+
+    def get_plot_efficient_frontier(self):
+
+        portfolios_data = self.simulate_portfolios()
+
+        fig, ax = plt.subplots(figsize=(4, 4))
+
+        portfolios_data.plot.scatter(x = 'Volatility', y = 'Return', c = 'Sharpe',colormap='viridis',ax=ax)
+
+        (self.additional_portfolio).plot.scatter(x = 'Volatility', y = 'Return', color="red",s=25,ax=ax,
+                                                 label='Your Portfolio', marker='*')
+
+        # fig = px.scatter(portfolios_data, x="Volatility", y="Return", color = "Sharpe")
+        # fig.add_scatter(x = self.additional_portfolio['Volatility'],
+        #                 y = self.additional_portfolio['Return'],
+        #                 marker = dict(color="red", size = 10), name = 'Portfolio', marker_symbol='star')
+        #
+        # fig.update_layout(legend=dict(
+        #     yanchor="top",
+        #     y=0.99,
+        #     xanchor="left",
+        #     x=0.01
+        # ))
+
+        return fig
 
     def __init__(self, tickers, period, train_period):
 
@@ -147,5 +166,3 @@ class StochasticMarkowitz(Portfolio):
         self.weights = list(self.portfolio.var["x"].to_dict().values())
         self.weights = np.array(self.weights)
         self.additional_portfolio = self.output_weights()[0]
-
-        print(self.weights)
