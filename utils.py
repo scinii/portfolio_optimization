@@ -30,3 +30,4 @@ def get_timeseries(w, tickers, period):
 
     return timeseries
 
+

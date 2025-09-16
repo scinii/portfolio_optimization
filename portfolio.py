@@ -70,7 +70,7 @@ class Portfolio:
 
         timeseries = get_timeseries(self.weights, self.tickers, self.period)
 
-        fig, ax = plt.subplots(figsize=(5, 4))
+        fig, ax = plt.subplots(figsize=(10, 6))
 
         # Plotly-like style
         ax.plot(timeseries.index, timeseries.values, color='#1f77b4', linewidth=2)  # Plotly default blue
@@ -89,7 +89,7 @@ class Portfolio:
 
         portfolios_data = self.simulate_portfolios()
 
-        fig, ax = plt.subplots(figsize=(4, 4))
+        fig, ax = plt.subplots(figsize=(6, 6))
 
         portfolios_data.plot.scatter(x = 'Volatility', y = 'Return', c = 'Sharpe',colormap='viridis',ax=ax)
 

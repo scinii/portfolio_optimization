@@ -20,8 +20,9 @@ ticker_entry.pack(pady=5)
 ticker_entry.insert(0, "AA, V, MA")
 
 
-def run_simulation():
 
+
+def run_simulation():
 
     tickers = [t.strip() for t in ticker_entry.get().split(",")]
     trial = StochasticMarkowitz(tickers=tickers, period="10y", train_period=5, alpha=0.1, beta=0.4)
